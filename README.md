@@ -1,6 +1,6 @@
 # TuringMachine
-A simple implemenation of a deterministic turing machine in c++.
-This is meant to be an eductational project, showing how a turing machine moves around and writes on its tape.
+A simple implementation of a deterministic turing machine in c++.
+This is meant to be an educational project, showing how a turing machine moves around and writes on its tape.
 
 To use the TuringMachine, you need to do the following steps:
 
@@ -21,7 +21,7 @@ This tells the machine what to do if it happens to be in state S1 and reads '_'.
 tm.setStart("S1");
 ```
 
-- (optionally) Set a final state
+- (optionally) Set a final state. You can also add multiple final states.
 ```
 tm.setFinalState("F3");
 ```
@@ -36,9 +36,10 @@ This will put four 1s  onto the tape. The turing machine will then start at the 
 ```
 tm.step(&tape);
 ```
-This will show the tape, the head and the state of the machine in the terminal everytime the machine moves. You show the next step by hitting enter. If you would like to run the machine automatically, use
+This will show the tape, the head and the state of the machine in the terminal everytime the machine moves. You get the next step by hitting enter. If you would like to run the machine automatically, use
 ```
 tm.run(&tape);
 ```
+Both methods will return a bool (or nothing, I can not solve the halting problem), showing wether a final state has been reached or not. This can be used to accept a formal language.
 
 You can find a complete example in main.cpp.
