@@ -19,7 +19,7 @@ void printHelp() {
 
 int main (int argc, char** argv) {
 	if (argc < 3) {
-		cout << "Excepted at least two argument" << endl;
+		cout << "Excepted at least two arguments" << endl;
 		printHelp();
 		return 1;
 	}
@@ -43,7 +43,7 @@ int main (int argc, char** argv) {
 	}
 
 	/* Find filename and words */
-	if (i > argc - 2) {
+	if ((!visualize && i > argc - 2) || i > argc - 1) {
 		cout << "Expected filename and words after options" << endl;
 		printHelp();
 		return 1;

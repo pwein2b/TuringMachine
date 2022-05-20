@@ -8,6 +8,7 @@ S: _,_,L -> U0
 # The states U0, U1, U2 represent the carry (Übertrag)
 U0: 1,1,L -> U1
 U0: _,_,R -> E
+U0: 0,0,L -> U0
 U1: 0,1,L -> U0
 U1: 1,0,L -> U2
 U1: _,1,L -> E
