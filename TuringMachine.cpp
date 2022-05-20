@@ -62,9 +62,16 @@ TuringMachine::create_from_file (std::string filename) {
 
 		if (std::regex_match(line, match, ruleRegEx)) {
 			/* Match a rule or a collection of rules, because multiple rules can be on one line*/
-			Direction d = Direction::LEFT;
-			if(match[4].str() == "R")
-				d = Direction::RIGHT;
+			Direction d = Direction::STAND;
+			switch(match[4].str()[0]) {
+			  case 'R': case 'r':
+			  d = Direction::RIGHT; break;
+			  case 'L': case 'l':
+			  d = Direction::LEFT; break;
+			  case 'S': case 's': break;
+			  default:
+			  std::cout << "Line " << linecount << ": unrecognized direction '" << match[4].str() << "'. Expected L, R or S" << std::endl;
+			}
 
 			std::vector<std::string> origins = split_string(match[1], ",");
 			std::vector<char> reads = parse_character_class (match[2]);
@@ -171,7 +178,7 @@ bool TuringMachine::run(Tape* tape, bool showDebug) {
 				
 				if(rule.direction == Direction::LEFT) {
 					tape->stepLeft();
-				} else {
+				} else if(rule.direction == Direction::RIGHT) {
 					tape->stepRight();
 				}
 				
@@ -223,7 +230,7 @@ bool TuringMachine::step(Tape* tape) {
 				
 				if(rule.direction == Direction::LEFT) {
 					tape->stepLeft();
-				} else {
+				} else if(rule.direction == Direction::RIGHT) {
 					tape->stepRight();
 				}
 				
@@ -277,10 +284,14 @@ TuringMachine::graph_to_file (std::string filename) {
 			out << "  " << state_name << " -> " << target_state_name << " [label=\"";
 			for (Rule rule : rules) {
 			  out << rule.readSymbol << "/" << rule.writeSymbol << "/";
-			  if (rule.direction == Direction::LEFT)
-  				out << "L";
-	  		else
-	  			out << "R";
+			  switch(rule.direction) {
+			    case Direction::LEFT:
+  				out << "L"; break;
+  				case Direction::RIGHT:
+  				out << "R"; break;
+  				case Direction::STAND:
+  				out << "S"; break;
+  			}
 	  		out << " \\n";
 	  	}
 	  	out << "\"];" << std::endl;
@@ -415,7 +426,7 @@ std::ostream& operator<<(std::ostream& stream,
 	else if(direction == Direction::RIGHT)
 		stream << "R";
 	else
-		stream << "-";
+		stream << "S";
 	
 	return stream;
 }

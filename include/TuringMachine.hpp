@@ -5,9 +5,8 @@
 class Tape;
 
 enum Direction {
-	LEFT = 0, RIGHT
+	LEFT = 0, RIGHT, STAND
 };
-// TODO don't move at all
 
 struct Rule;
 
