@@ -1,8 +1,8 @@
 #include <iostream>
 #include <cstring>
 
-#include "include/Tape.hpp"
-#include "include/TuringMachine.hpp"
+#include "../include/Tape.hpp"
+#include "../include/TuringMachine.hpp"
 
 const char EMP = Tape::EMPTY_SYMBOL;
 const Direction L = Direction::LEFT;
