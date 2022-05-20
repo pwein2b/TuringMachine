@@ -70,16 +70,27 @@ Each line represents a rule. For any states S, T and a character x, the rule tha
 ```
 S: x,y,R -> T
 ```
-States can have names that contain letters a-z, A-Z, numbers and underscores (except at the beginning). States that don't exist upon reading such a line will be created. The first rule line determines the state to start in.
+States can have names that contain letters a-z, A-Z, numbers and underscores. States that don't exist upon reading such a line will be created. The first rule line determines the state to start in.
+If the character read from the tape should not be modified (or equivalently, written back to the tape), one can simply omit the `,y` part of the line.
 
-If S should become a final state, it should appear in a rule line with prefixed underscore
-```
-_S: x,y,R -> T
-```
-or in a specific line
+If S should become a final state, it should appear in a specific line
 ```
 S final;
 ```
 
+If there are several rules with same direction of movement and target state, they can be abbreviated.
+For example, the rule set
+```
+A: 0,1,R -> B
+A: 0,R -> C
+B: 0,1,R -> B
+B: 1,R -> C
+```
+can be simplified to
+```
+A,B: 0,1,R -> B
+A,B: {0,1},R -> C
+```
+
 Comments can appear after a `#` symbol.
-You can find an example in demo/times3.tm
+You can find an example in demo/times3.tm.
