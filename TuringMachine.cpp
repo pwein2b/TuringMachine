@@ -203,20 +203,39 @@ TuringMachine::graph_to_file (std::string filename) {
 	/* iterate over states */
 	for(const auto& [state_name, state] : states) {
 		if (state.finalState)
-			out << state_name << " [shape=doublecircle];" << std::endl;
+			out << "  " << state_name << " [shape=doublecircle];" << std::endl;
 		else
-			out << state_name << ";" << std::endl;
+			out << "  " << state_name << ";" << std::endl;
 	}
+
+	out << "  ___start [label=start;shape=none];" << std::endl;
+	out << "  ___start -> " << start << ";" << std::endl;
 
 	/* iterate over states again for rules */
 	for(const auto& [state_name, state] : states) {
-		for (Rule rule : state.rules) {
-			out << state_name << " -> " << rule.target->name << " [label=\"" << rule.readSymbol << "/" << rule.writeSymbol << "/";
-			if (rule.direction == Direction::LEFT)
-				out << "L";
-			else
-				out << "R";
-			out << "\"];" << std::endl;
+	  /* iterate over destination states to merge rules that lead the same way to one label */
+	  std::map<std::string, std::vector<Rule>> rules_by_target;
+	  for (Rule rule : state.rules) {
+	    if (rules_by_target.count(rule.target->name) == 0){
+	      std::vector<Rule> rules {rule};
+	      rules_by_target.insert({rule.target->name, rules});
+	    } else {
+	      std::vector<Rule> *rules = &rules_by_target[rule.target->name];
+	      rules->push_back(rule);
+	    }
+	  }
+
+		for (const auto& [target_state_name, rules] : rules_by_target) {
+			out << "  " << state_name << " -> " << target_state_name << " [label=\"";
+			for (Rule rule : rules) {
+			  out << rule.readSymbol << "/" << rule.writeSymbol << "/";
+			  if (rule.direction == Direction::LEFT)
+  				out << "L";
+	  		else
+	  			out << "R";
+	  		out << " \\n";
+	  	}
+	  	out << "\"];" << std::endl;
 		}
 	}
 	out << "}";
