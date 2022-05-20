@@ -6,7 +6,6 @@ tm_sources = [
 ]
 
 main_sources = [
-  tm_sources,
   'main.cpp',
 ]
 
