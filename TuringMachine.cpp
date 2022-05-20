@@ -11,30 +11,78 @@
 #include "include/TuringMachine.hpp"
 #include "include/Tape.hpp"
 
+std::vector<std::string>
+split_string (std::string to_split, std::string delimiter) {
+  std::vector<std::string> result;
+  std::string s = to_split;
+
+  size_t pos = 0;
+  while ((pos = s.find(delimiter)) != std::string::npos) {
+    std::string token = s.substr(0, pos);
+    result.push_back(token);
+    s.erase(0, pos + delimiter.length());
+  }
+
+  result.push_back(s);
+
+  return result;
+}
+
+std::vector<char>
+parse_character_class (std::string character_class) {
+  std::vector<char> result;
+
+  if(character_class.size() == 0)
+    return result;
+
+  if(character_class.size() == 1) {
+    result.push_back(character_class[0]);
+    return result;
+  }
+
+  std::vector<std::string> preresult = split_string(character_class.substr(1, character_class.size() - 2), ",");
+  for(std::string character : preresult)
+    result.push_back(character[0]);
+
+  return result;
+}
+
 TuringMachine
 TuringMachine::create_from_file (std::string filename) {
 	std::ifstream in(filename);
+
 	TuringMachine tm;
 
-	std::regex ruleRegEx("(_?)([a-zA-Z0-9]+): (.),(.),(.) -> ([a-zA-Z0-9]+)( #.*)?");
-	std::regex finalRegEx("([a-zA-Z0-9]+) final;( #.*)?");
+	std::regex ruleRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?(.) -> ([a-zA-Z0-9_]+)( #.*)?");
+	std::regex finalRegEx("([a-zA-Z0-9_]+) final;( #.*)?");
 	int linecount = 0;
 	for(std::string line; std::getline(in, line);) {
 		linecount++;
 		std::smatch match;
 
 		if (std::regex_match(line, match, ruleRegEx)) {
-			/* Match a rule */
+			/* Match a rule or a collection of rules, because multiple rules can be on one line*/
 			Direction d = Direction::LEFT;
-			if(match[5].str() == "R")
+			if(match[4].str() == "R")
 				d = Direction::RIGHT;
 
-			tm.addRule(match[2].str(), match[3].str()[0], match[4].str()[0], d, match[6].str());
-			if (match[1].str() == "_")
-				tm.setFinalState(match[2], true);
+			std::vector<std::string> origins = split_string(match[1], ",");
+			std::vector<char> reads = parse_character_class (match[2]);
+			for (std::string origin : origins) {
+			  for(char read : reads) {
+			    char write;
+			    if(match[3].length() == 0)
+			      write = read;
+			    else
+			      write = match[3].str()[0];
 
-			if(tm.start == "")
-				tm.setStart(match[2]);
+			    tm.addRule(origin, read, write, d, match[5].str());
+			  }
+
+			  if(tm.start == "")
+				  tm.setStart(match[1]);
+			}
+
 		} else if(std::regex_match(line, match, finalRegEx)) {
 			tm.addState(match[1].str());
 			tm.setFinalState(match[1].str(), true);
