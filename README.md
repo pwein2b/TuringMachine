@@ -2,7 +2,27 @@
 A simple implementation of a deterministic turing machine in c++.
 This is meant to be an educational project, showing how a turing machine moves around and writes on its tape.
 
-To use the TuringMachine, you need to do the following steps:
+## Compilation
+Apart from the C++ standard library and the meson build system, no other dependencies are required. To compile, open the main directory in terminal and type:
+
+```
+meson builddir
+```
+
+to initialize the build directory and
+```
+cd builddir
+ninja
+```
+
+to compile.
+
+
+## Usage
+The preferred way of usage is creating an external text file that describes a Turing Machine, but it is also possible to compile a TM statically.
+
+### Static usage
+To use a statically compiled TuringMachine, you need to do the following steps:
 
 - Create an instance of the TuringMchine
 
@@ -42,4 +62,24 @@ tm.run(&tape);
 ```
 Both methods will return a bool (or nothing, I can not solve the halting problem), showing wether a final state has been reached or not. This can be used to accept a formal language.
 
-You can find a complete example in main.cpp.
+You can find a complete example in demo/StaticMachine.cpp
+
+### Turing Machine descriptions in external files
+Turing Machines to work with may be loaded from file in the following format:
+Each line represents a rule. For any states S, T and a character x, the rule that says "If the machine is in S and character x is read, then write y, go to T and move the r/w device right" is represented by the following line:
+```
+S: x,y,R -> T
+```
+States can have names that contain letters a-z, A-Z, numbers and underscores (except at the beginning). States that don't exist upon reading such a line will be created. The first rule line determines the state to start in.
+
+If S should become a final state, it should appear in a rule line with prefixed underscore
+```
+_S: x,y,R -> T
+```
+or in a specific line
+```
+S final;
+```
+
+Comments can appear after a `#` symbol.
+You can find an example in demo/times3.tm
