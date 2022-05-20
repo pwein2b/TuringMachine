@@ -5,28 +5,63 @@
 #include <queue>
 #include <iostream>
 #include <iomanip> // for setw()
+#include <fstream>
+#include <regex>
 
 #include "include/TuringMachine.hpp"
 #include "include/Tape.hpp"
+
+TuringMachine
+TuringMachine::create_from_file (std::string filename) {
+	std::ifstream in(filename);
+	TuringMachine tm;
+
+	std::regex ruleRegEx("(_?)([a-zA-Z0-9]+): (.),(.),(.) -> ([a-zA-Z0-9]+)( #.*)?");
+	std::regex finalRegEx("([a-zA-Z0-9]+) final;( #.*)?");
+	int linecount = 0;
+	for(std::string line; std::getline(in, line);) {
+		linecount++;
+		std::smatch match;
+
+		if (std::regex_match(line, match, ruleRegEx)) {
+			/* Match a rule */
+			Direction d = Direction::LEFT;
+			if(match[5].str() == "R")
+				d = Direction::RIGHT;
+
+			tm.addRule(match[2].str(), match[3].str()[0], match[4].str()[0], d, match[6].str());
+			if (match[1].str() == "_")
+				tm.setFinalState(match[2], true);
+
+			if(tm.start == "")
+				tm.setStart(match[2]);
+		} else if(std::regex_match(line, match, finalRegEx)) {
+			tm.addState(match[1].str());
+			tm.setFinalState(match[1].str(), true);
+
+			if(tm.start == "")
+				tm.setStart(match[1]);
+		} else if(line[0] != '#' && line[0] != '\0') {
+			std::cout << "Line " << linecount << ": syntax error" << std::endl;
+		}
+	}
+
+	return tm;
+}
+
+void
+TuringMachine::addState(std::string name) {
+	if(states.count(name) == 0)
+		states.insert({name, {name, {}}});
+}
 
 void TuringMachine::addRule(std::string origin, char readSymbol,
 														char writeSymbol, Direction direction,
 														std::string target) {
 	
-	// does the origin state exist?
-	if(this->states.count(origin) == 0) {
-		
-		// create the state
-		this->states.insert({origin, {origin, {}}});
-	}
-	
-	// does the target state exist?
-	if(this->states.count(target) == 0) {
-		
-		// create the state
-		this->states.insert({target, {target, {}}});
-	}
-	
+	// create the origin and target states, if they don't exist yet
+	addState(origin);
+	addState(target);
 	
 	// construct the specific rule
 	Rule rule = {
