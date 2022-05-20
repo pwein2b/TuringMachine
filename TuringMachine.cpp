@@ -195,6 +195,35 @@ bool TuringMachine::step(Tape* tape) {
 	return false;
 }
 
+bool
+TuringMachine::graph_to_file (std::string filename) {
+	std::ofstream out(filename, std::ios::trunc);
+	out << "digraph G {" << std::endl;
+
+	/* iterate over states */
+	for(const auto& [state_name, state] : states) {
+		if (state.finalState)
+			out << state_name << " [shape=doublecircle];" << std::endl;
+		else
+			out << state_name << ";" << std::endl;
+	}
+
+	/* iterate over states again for rules */
+	for(const auto& [state_name, state] : states) {
+		for (Rule rule : state.rules) {
+			out << state_name << " -> " << rule.target->name << " [label=\"" << rule.readSymbol << "/" << rule.writeSymbol << "/";
+			if (rule.direction == Direction::LEFT)
+				out << "L";
+			else
+				out << "R";
+			out << "\"];" << std::endl;
+		}
+	}
+	out << "}";
+
+	return true;
+}
+
 std::ostream& TuringMachine::outputMachine(std::ostream& stream) {
 	
 	// state | read | write | direction | nextState

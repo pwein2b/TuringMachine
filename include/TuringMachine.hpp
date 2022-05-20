@@ -104,6 +104,17 @@ public:
 	 * Output the TuringMachine as a string to a stream
 	 */
 	std::ostream& outputMachine(std::ostream& stream);
+
+	/**
+	 * Create a GraphViz file that represents the machine as a graph.
+	 * The resulting file can be compiled with dot or its siblings.
+	 * GraphViz needs to be installed for compilation.
+	 *
+	 * @param filename	Name of the file to output the graph into
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool graph_to_file(std::string filename);
 };
 
 std::ostream& operator<<(std::ostream& stream, TuringMachine& tm);
