@@ -1,4 +1,4 @@
-project('TuringMachine', 'cpp')
+project('TuringMachine', 'cpp', default_options: ['cpp_std=c++17'])
 
 tm_sources = [
   'Tape.cpp',

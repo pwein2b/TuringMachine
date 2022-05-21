@@ -7,9 +7,12 @@
 #include <iomanip> // for setw()
 #include <fstream>
 #include <regex>
+#include <filesystem>
 
 #include "include/TuringMachine.hpp"
 #include "include/Tape.hpp"
+
+namespace fs = std::filesystem;
 
 std::vector<std::string>
 split_string (std::string to_split, std::string delimiter) {
@@ -48,14 +51,22 @@ parse_character_class (std::string character_class) {
 }
 
 TuringMachine
-TuringMachine::create_from_file (std::string filename) {
-	std::ifstream in(filename);
+TuringMachine::create_from_file (std::string filename, std::string state_prefix) {
+  fs::path filepath(filename);
+  if(!fs::exists(filepath)) {
+    std::cerr << "TuringMachine::create_from_file: File '" << fs::absolute(filepath) << "' does not exist" << std::endl;
+  }
+
+	std::ifstream in;
+	in.open(filename);
 
 	TuringMachine tm;
 
 	std::regex ruleRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?(.) -> ([a-zA-Z0-9_]+)( #.*)?");
 	std::regex finalRegEx("([a-zA-Z0-9_]+) final;( #.*)?");
+	std::regex importRegEx("([a-zA-Z0-9_]+): import \"([^\"]+)\"( at ([a-zA-Z0-9_]+))? -> ([a-zA-Z0-9_]+)");
 	int linecount = 0;
+
 	for(std::string line; std::getline(in, line);) {
 		linecount++;
 		std::smatch match;
@@ -83,24 +94,79 @@ TuringMachine::create_from_file (std::string filename) {
 			    else
 			      write = match[3].str()[0];
 
-			    tm.addRule(origin, read, write, d, match[5].str());
+			    tm.addRule(state_prefix + origin, read, write, d, state_prefix + match[5].str());
 			  }
 
 			  if(tm.start == "")
-				  tm.setStart(match[1]);
+				  tm.setStart(state_prefix + match[1].str());
 			}
 
 		} else if(std::regex_match(line, match, finalRegEx)) {
-			tm.addState(match[1].str());
-			tm.setFinalState(match[1].str(), true);
+			tm.addState(state_prefix + match[1].str());
+			tm.setFinalState(state_prefix + match[1].str(), true);
 
 			if(tm.start == "")
-				tm.setStart(match[1]);
+				tm.setStart(state_prefix + match[1].str());
+
+		} else if(std::regex_match(line, match, importRegEx)) {
+		  std::string subMachineName = match[1].str();
+		  std::string startState = match[4].str(), nextState = match[5].str();
+		  if(startState != "")
+		    startState = subMachineName + "__" + startState;
+		  tm.addState(nextState);
+		  tm.addState(subMachineName);
+
+		  /* find the file to import */
+		  std::string importfn = match[2].str();
+		  fs::path importpath(importfn);
+		  if(!fs::exists(importpath)) {
+		    importpath = fs::path(filepath).parent_path() / importpath;
+		    if(!fs::exists(importpath)) {
+		      std::cout << "Line " << linecount << ": Unable to find '" << importfn << "'" << std::endl;
+		      break;
+		    }
+		  }
+
+      /* Import the machine */
+		  TuringMachine subMachine = TuringMachine::create_from_file(importpath.string(), subMachineName + "__");
+		  if (startState == "")
+		    startState = subMachine.start;
+
+		  /* Merge the other machine's states into the current Turing Machine */
+		  for(const auto& [state_name, state] : subMachine.states) {
+		    std::string newname = state_name;
+		    if (state_name == startState)
+		      newname = subMachineName;
+
+		    if (state.finalState) {
+		      // the final state from the submachine will be merged with the nextState
+		      if (state.rules.size() != 0)
+		        std::cout << "Line " << linecount << ", importing '" << subMachineName << "': Error - final state '" << state_name << "' of sub machine must not have any rules" << std::endl;
+
+		      continue;
+		    }
+
+		    /* Rewrite rules, merging final states with nextState */
+		    std::vector<Rule> newrules;
+		    for (Rule rule : state.rules) {
+		      if (rule.target->finalState)
+		        tm.addRule(newname, rule.readSymbol, rule.writeSymbol, rule.direction, nextState);
+		      else if(rule.target->name == startState)
+		        tm.addRule(newname, rule.readSymbol, rule.writeSymbol, rule.direction, subMachineName);
+		      else {
+		        tm.addRule(newname, rule.readSymbol, rule.writeSymbol, rule.direction, rule.target->name);
+		      }
+		    }
+
+		    /* Insert modified state */
+		    //tm.states.insert({newname, {newname, newrules, false}});
+		  }
 		} else if(line[0] != '#' && line[0] != '\0') {
 			std::cout << "Line " << linecount << ": syntax error" << std::endl;
 		}
 	}
 
+  in.close();
 	return tm;
 }
 

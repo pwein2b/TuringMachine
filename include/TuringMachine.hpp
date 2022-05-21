@@ -40,10 +40,11 @@ public:
 	 * The format of the .tm file is documented in README.
 	 *
 	 * @param filename	The file from which to read the machine
+	 * @param state_prefix	A prefix that should be prepended to all state names read
 	 *
 	 * @return true if a deterministic turing machine with at least one final state was read.
 	 */
-	static TuringMachine create_from_file(std::string);
+	static TuringMachine create_from_file(std::string filename, std::string state_prefix = "");
 
 	/**
 	 * Add a rule to a state. Constructs the state if it does not exist.
