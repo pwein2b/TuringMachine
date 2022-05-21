@@ -320,6 +320,8 @@ bool
 TuringMachine::graph_to_file (std::string filename) {
 	std::ofstream out(filename, std::ios::trunc);
 	out << "digraph G {" << std::endl;
+	out << "  ___start [label=start;shape=none;fontcolor=red];" << std::endl;
+	out << "  ___start -> " << start << ";" << std::endl;
 
 	/* iterate over states */
 	for(const auto& [state_name, state] : states) {
@@ -328,9 +330,6 @@ TuringMachine::graph_to_file (std::string filename) {
 		else
 			out << "  " << state_name << ";" << std::endl;
 	}
-
-	out << "  ___start [label=start;shape=none];" << std::endl;
-	out << "  ___start -> " << start << ";" << std::endl;
 
 	/* iterate over states again for rules */
 	for(const auto& [state_name, state] : states) {
