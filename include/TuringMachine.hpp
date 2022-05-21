@@ -5,7 +5,7 @@
 class Tape;
 
 enum Direction {
-	LEFT = 0, RIGHT
+	LEFT = 0, RIGHT, STAND
 };
 
 struct Rule;
@@ -30,6 +30,7 @@ private:
 	// map to find states easier
 	std::map<std::string, State> states;
 	std::string start;
+	std::vector<char> tapeAlphabet;
 
 public:
 	
@@ -48,6 +49,23 @@ public:
 							Direction direction, std::string target);
 	
 	/**
+	 * Adds a jump as a construct of multiple rules. Goes as follows:
+	 * Read the symbol and overwrite it with the new one.
+	 * Then go to the direction until the stop symbol appears.
+	 * Halt one cell next to the stop symbol.
+	 * 
+	 * This only works if the tape alphabet is set.
+	 * 
+	 * @param origin		The alias of the origin state
+	 * @param readSymbol	The symbol to read on the tape
+	 * @param writeSymbol	The symhol to write onto the tape
+	 * @param direction		The direction to move to
+	 * @param stop			The symbol to where the machine should jump
+	 * @param target		The alias of the target state
+	 */
+	void addJump(std::string origin, char readSymbol, char writeSymbol,
+				Direction direction, char stop, std::string target);
+	/**
 	 * Set the state with the name to a finalstate.
 	 */
 	void setFinalState(std::string name, bool finalState = true);
@@ -56,6 +74,13 @@ public:
 	 * Set the state to begin with.
 	 */
 	void setStart(std::string name);
+	
+	/**
+	 * Set the tape alphabet. It contains all the symbols the machine
+	 * may find on the tape and is used internally whenever rules
+	 * need to be constructed automatically.
+	 */
+	void setTapeAlphabet(std::vector<char>& tapeAlphabet);
 	
 	/**
 	 * Deletes all rules and states of the machine.

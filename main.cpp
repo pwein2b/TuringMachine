@@ -7,39 +7,32 @@
 const char EMP = Tape::EMPTY_SYMBOL;
 const Direction L = Direction::LEFT;
 const Direction R = Direction::RIGHT;
+const Direction S = Direction::STAND;
+
+std::vector<char> tapeAlphabet = std::vector<char>{EMP, '1', '0'};
 
 int main() {
 		
 	TuringMachine tm;
+	tm.setTapeAlphabet(tapeAlphabet);
 	
-	/* determine if there is an even number of 1s on the tape */
+	/* increment a binary number on the tape */
 	
-	// first character is the result as a bool: 0 -> not even, 1 -> even 
-	tm.addRule("S1", EMP, '1', R, "F2");
-	tm.addRule("S1", '1', '0', R, "S2");
+	// 'jump' to the right
+	tm.addJump("S1", '1', '1', R, EMP, "I1");
 	
-	// find the next 1 on the tape
-	tm.addRule("S2", '1', '#', L, "S3");
-	tm.addRule("S2", '#', '#', R, "S2");
-	tm.addRule("S2", EMP, EMP, L, "F1");
+	// basic addition
+	tm.addRule("I1", '0', '1', L, "F1");
+	tm.addRule("I1", EMP, '1', L, "F2");
+	tm.addRule("I1", '1', '0', L, "I1");
 	
-	// go back to switch the first character
-	tm.addRule("S3", '#', '#', L, "S3");
-	tm.addRule("S3", '1', '0', R, "S2");
-	tm.addRule("S3", '0', '1', R, "S2");
-	
-	// clean up after operation
-	tm.addRule("F1", '#', EMP, L, "F1");
-	tm.addRule("F1", '1', '1', R, "F2");
-	tm.addRule("F1", '0', '0', R, "F2");
-	
-	// go back to the beginning
-	tm.addRule("F2", EMP, EMP, L, "F3");
+	// go to the right and stop
+	tm.addJump("F1", '0', '0', L, EMP, "F2");
+	tm.addJump("F1", '1', '1', L, EMP, "F2");
 	
 	tm.setStart("S1");
-	tm.setFinalState("F3");
+	tm.setFinalState("F2");
 	
-	Tape tape("1111");
+	Tape tape("1011");
 	tm.step(&tape);
-
 }

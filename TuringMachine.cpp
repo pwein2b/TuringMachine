@@ -36,6 +36,27 @@ void TuringMachine::addRule(std::string origin, char readSymbol,
 	this->states[origin].rules.push_back(rule);
 }
 
+void TuringMachine::addJump(std::string origin, char readSymbol, char writeSymbol, Direction direction, char stop, std::string target) {
+	
+	// create a unique name. The tm is deterministic, so origin and readsymbol should be enough
+	std::string loopName = "Loop_" + origin + '.' + readSymbol;
+	
+	Direction reverse = Direction::STAND;
+	if (direction == Direction::LEFT) reverse = Direction::RIGHT;
+	else if (direction == Direction::RIGHT) reverse = Direction::LEFT;
+	
+	// make the machine go into a loop state
+	this->addRule(origin, readSymbol, writeSymbol, direction, loopName);
+	for (char symbol : this->tapeAlphabet) {
+		if (symbol != stop) {
+			this->addRule(loopName, symbol, symbol, direction, loopName);
+		} else {
+			// the machine should stop one cell before the symbol
+			this->addRule(loopName, stop, stop, reverse, target);
+		}
+	}
+}
+
 void TuringMachine::setFinalState(std::string name, bool finalState) {
 	
 	if(this->states.count(name) == 0) {
@@ -48,6 +69,10 @@ void TuringMachine::setFinalState(std::string name, bool finalState) {
 
 void TuringMachine::setStart(std::string name) {
 	this->start = name;
+}
+
+void TuringMachine::setTapeAlphabet(std::vector<char>& tapeAlphabet) {
+	this->tapeAlphabet = tapeAlphabet;
 }
 
 void TuringMachine::reset() {
@@ -88,8 +113,10 @@ bool TuringMachine::run(Tape* tape, bool showDebug) {
 				
 				if(rule.direction == Direction::LEFT) {
 					tape->stepLeft();
-				} else {
+				} else if (rule.direction == Direction::RIGHT) {
 					tape->stepRight();
+				} else {
+					// do nothing, standing still
 				}
 				
 				currentState = rule.target;
@@ -140,8 +167,10 @@ bool TuringMachine::step(Tape* tape) {
 				
 				if(rule.direction == Direction::LEFT) {
 					tape->stepLeft();
-				} else {
+				} else if (rule.direction == Direction::RIGHT) {
 					tape->stepRight();
+				} else {
+					// do nothing, standing still
 				}
 				
 				currentState = rule.target;
