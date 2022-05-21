@@ -65,7 +65,9 @@ Both methods will return a bool (or nothing, I can not solve the halting problem
 You can find a complete example in demo/StaticMachine.cpp
 
 ### Turing Machine descriptions in external files
-Turing Machines to work with may be loaded from file in the following format:
+Turing Machines to work with may be loaded from file in the following format.
+
+#### Basic Rules
 Each line represents a rule. For any states S, T and a character x, the rule that says "If the machine is in S and character x is read, then write y, go to T and move the r/w device right" is represented by the following line:
 ```
 S: x,y,R -> T
@@ -94,3 +96,28 @@ A,B: {0,1},R -> C
 
 Comments can appear after a `#` symbol.
 You can find an example in demo/times3.tm.
+
+#### Concatenating Machines
+If you want to create a rather big Turing Machine that can reuse elements of other machines,
+this is also easily possible in this syntax as you can import TMs from other files.
+The only restriction on import files is that final states must not have any rules,
+and files may not import one another.
+
+Consider you have a TM that increments a unary number on the tape at the right side
+(see demo/unaryincrement.tm for an example). The increment TM starts in a state S
+and terminates in a state E. You want to use this machine as a building block.
+Specifically, you have a state A which you want to "call" the increment machine from,
+and then go to another state B.
+This could be realized by the following lines:
+```
+Increment: import "unaryincrement.tm" -> B
+A: 0,R -> Increment
+```
+
+If you don't want to start the imported turing machine at its default state, but
+at another state "Alternative":
+```
+Increment: import "unaryincrement.tm" at Alternative -> B
+```
+
+See demo/collatz.tm for an example.

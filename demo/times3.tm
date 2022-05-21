@@ -16,5 +16,5 @@ U2: _,0,L -> U1
 U2: 1,1,L -> U2
 
 # End state: Move right to find the first digit of the result and terminate when it has been found
-E: _,_,R -> E
-E final;
+E: _,_,R -> E1
+E1 final;
