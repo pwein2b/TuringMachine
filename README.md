@@ -121,3 +121,20 @@ Increment: import "unaryincrement.tm" at Alternative -> B
 ```
 
 See demo/collatz.tm for an example.
+
+### Extending the classic Turing Machine
+The classic Turing Machine model can be extended in several ways; many of those actually happen to be Turing-equivalent machine models, thereby enabling us to define machines more concisely.
+In this TuringMachine currently supports jumping Turing Machines:
+
+#### Jumps
+A jumping TM can have the same rules as a regular TM, and in addition to that Rules may be of the form "when in state `S` and reading `a`, write `b` and move to the right as long as the next character on the tape is not `c`, then switch to state `T`. We support such rules by the following syntax:
+```
+S: a,b,jump R until c -> T
+```
+
+Such a rule is automatically expanded into an additional auxiliary state with appropriates rules. For those rules to be constructed adequatly, the Tape alphabet must be explicitly declared **before** a jumping rule is provided, by introducing a line of the form
+```
+alphabet {0,1,_};
+```
+
+See demo/unary_subtract.tm for an example.

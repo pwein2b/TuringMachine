@@ -64,7 +64,9 @@ TuringMachine::create_from_file (std::string filename, std::string state_prefix)
 
 	std::regex ruleRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?(.) -> ([a-zA-Z0-9_]+)( #.*)?");
 	std::regex finalRegEx("([a-zA-Z0-9_]+) final;( #.*)?");
+	std::regex jumpRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?jump (R|L) until (.) -> ([a-zA-Z0-9_]+)( #.*)?");
 	std::regex importRegEx("([a-zA-Z0-9_]+): import \"([^\"]+)\"( at ([a-zA-Z0-9_]+))? -> ([a-zA-Z0-9_]+)");
+  std::regex alphabetRegEx("alphabet (\\{.(,.)*\\});");
 	int linecount = 0;
 
 	for(std::string line; std::getline(in, line);) {
@@ -95,6 +97,39 @@ TuringMachine::create_from_file (std::string filename, std::string state_prefix)
 			      write = match[3].str()[0];
 
 			    tm.addRule(state_prefix + origin, read, write, d, state_prefix + match[5].str());
+			  }
+
+			  if(tm.start == "")
+				  tm.setStart(state_prefix + match[1].str());
+			}
+
+    } else if(std::regex_match(line, match, jumpRegEx)) {
+			Direction d = Direction::STAND;
+			switch(match[4].str()[0]) {
+			  case 'R': case 'r':
+			  d = Direction::RIGHT; break;
+			  case 'L': case 'l':
+			  d = Direction::LEFT; break;
+			  default:
+			  std::cout << "Line " << linecount << ": unrecognized direction '" << match[4].str() << "'. Expected L or R" << std::endl;
+			}
+      char jumpLimit = match[5].str()[0];
+
+			std::vector<std::string> origins = split_string(match[1], ",");
+			std::vector<char> reads = parse_character_class (match[2]);
+
+      if(tm.tapeAlphabet.size() == 0)
+        std::cout << "Line " << linecount << ": declaring a jump before declaring the tape alphabet will result in unexpected behaviour" << std::endl;
+
+			for (std::string origin : origins) {
+			  for(char read : reads) {
+			    char write;
+			    if(match[3].length() == 0)
+			      write = read;
+			    else
+			      write = match[3].str()[0];
+
+			    tm.addJump(state_prefix + origin, read, write, d, jumpLimit, state_prefix + match[6].str());
 			  }
 
 			  if(tm.start == "")
@@ -161,6 +196,10 @@ TuringMachine::create_from_file (std::string filename, std::string state_prefix)
 		    /* Insert modified state */
 		    //tm.states.insert({newname, {newname, newrules, false}});
 		  }
+    } else if(std::regex_match(line, match, alphabetRegEx)) {
+      std::vector<char> alphabet = parse_character_class(match[1].str());
+      tm.setTapeAlphabet(alphabet);
+
 		} else if(line[0] != '#' && line[0] != '\0') {
 			std::cout << "Line " << linecount << ": syntax error" << std::endl;
 		}
