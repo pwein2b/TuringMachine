@@ -35,6 +35,18 @@ private:
 public:
 	
 	TuringMachine() = default;
+
+	/**
+	 * Construct a new Turing Machine by reading in a specification from a file.
+	 * The format of the .tm file is documented in README.
+	 *
+	 * @param filename	The file from which to read the machine
+	 * @param state_prefix	A prefix that should be prepended to all state names read
+	 *
+	 * @return true if a deterministic turing machine with at least one final state was read.
+	 */
+	static TuringMachine create_from_file(std::string filename, std::string state_prefix = "");
+
 	/**
 	 * Add a rule to a state. Constructs the state if it does not exist.
 	 * Newly constructed States won't be final states by default.
@@ -65,6 +77,12 @@ public:
 	 */
 	void addJump(std::string origin, char readSymbol, char writeSymbol,
 				Direction direction, char stop, std::string target);
+
+	/**
+	 * Make sure a state with a certain name exists in the machine
+	 */
+	void addState(std::string name);
+
 	/**
 	 * Set the state with the name to a finalstate.
 	 */
@@ -99,8 +117,8 @@ public:
 	bool run(Tape* tape, bool showDebug = true);
 	
 	/**
-	 * Execute just a step of the program, waiting for cin.get and
-	 * showing the current state of the machine.
+	 * Run the machine on a given input; execute just one step at a time,
+	 * waiting for cin.get and showing the current state of the machine.
 	 * 
 	 * @param tape		Pointer to the input tape
 	 * 
@@ -112,6 +130,17 @@ public:
 	 * Output the TuringMachine as a string to a stream
 	 */
 	std::ostream& outputMachine(std::ostream& stream);
+
+	/**
+	 * Create a GraphViz file that represents the machine as a graph.
+	 * The resulting file can be compiled with dot or its siblings.
+	 * GraphViz needs to be installed for compilation.
+	 *
+	 * @param filename	Name of the file to output the graph into
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool graph_to_file(std::string filename);
 };
 
 std::ostream& operator<<(std::ostream& stream, TuringMachine& tm);

@@ -5,28 +5,184 @@
 #include <queue>
 #include <iostream>
 #include <iomanip> // for setw()
+#include <fstream>
+#include <regex>
+#include <filesystem>
 
 #include "include/TuringMachine.hpp"
 #include "include/Tape.hpp"
+
+namespace fs = std::filesystem;
+
+std::vector<std::string>
+split_string (std::string to_split, std::string delimiter) {
+  std::vector<std::string> result;
+  std::string s = to_split;
+
+  size_t pos = 0;
+  while ((pos = s.find(delimiter)) != std::string::npos) {
+    std::string token = s.substr(0, pos);
+    result.push_back(token);
+    s.erase(0, pos + delimiter.length());
+  }
+
+  result.push_back(s);
+
+  return result;
+}
+
+std::vector<char>
+parse_character_class (std::string character_class) {
+  std::vector<char> result;
+
+  if(character_class.size() == 0)
+    return result;
+
+  if(character_class.size() == 1) {
+    result.push_back(character_class[0]);
+    return result;
+  }
+
+  std::vector<std::string> preresult = split_string(character_class.substr(1, character_class.size() - 2), ",");
+  for(std::string character : preresult)
+    result.push_back(character[0]);
+
+  return result;
+}
+
+TuringMachine
+TuringMachine::create_from_file (std::string filename, std::string state_prefix) {
+  fs::path filepath(filename);
+  if(!fs::exists(filepath)) {
+    std::cerr << "TuringMachine::create_from_file: File '" << fs::absolute(filepath) << "' does not exist" << std::endl;
+  }
+
+	std::ifstream in;
+	in.open(filename);
+
+	TuringMachine tm;
+
+	std::regex ruleRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?(.) -> ([a-zA-Z0-9_]+)( #.*)?");
+	std::regex finalRegEx("([a-zA-Z0-9_]+) final;( #.*)?");
+	std::regex importRegEx("([a-zA-Z0-9_]+): import \"([^\"]+)\"( at ([a-zA-Z0-9_]+))? -> ([a-zA-Z0-9_]+)");
+	int linecount = 0;
+
+	for(std::string line; std::getline(in, line);) {
+		linecount++;
+		std::smatch match;
+
+		if (std::regex_match(line, match, ruleRegEx)) {
+			/* Match a rule or a collection of rules, because multiple rules can be on one line*/
+			Direction d = Direction::STAND;
+			switch(match[4].str()[0]) {
+			  case 'R': case 'r':
+			  d = Direction::RIGHT; break;
+			  case 'L': case 'l':
+			  d = Direction::LEFT; break;
+			  case 'S': case 's': break;
+			  default:
+			  std::cout << "Line " << linecount << ": unrecognized direction '" << match[4].str() << "'. Expected L, R or S" << std::endl;
+			}
+
+			std::vector<std::string> origins = split_string(match[1], ",");
+			std::vector<char> reads = parse_character_class (match[2]);
+			for (std::string origin : origins) {
+			  for(char read : reads) {
+			    char write;
+			    if(match[3].length() == 0)
+			      write = read;
+			    else
+			      write = match[3].str()[0];
+
+			    tm.addRule(state_prefix + origin, read, write, d, state_prefix + match[5].str());
+			  }
+
+			  if(tm.start == "")
+				  tm.setStart(state_prefix + match[1].str());
+			}
+
+		} else if(std::regex_match(line, match, finalRegEx)) {
+			tm.addState(state_prefix + match[1].str());
+			tm.setFinalState(state_prefix + match[1].str(), true);
+
+			if(tm.start == "")
+				tm.setStart(state_prefix + match[1].str());
+
+		} else if(std::regex_match(line, match, importRegEx)) {
+		  std::string subMachineName = match[1].str();
+		  std::string startState = match[4].str(), nextState = match[5].str();
+		  if(startState != "")
+		    startState = subMachineName + "__" + startState;
+		  tm.addState(nextState);
+		  tm.addState(subMachineName);
+
+		  /* find the file to import */
+		  std::string importfn = match[2].str();
+		  fs::path importpath(importfn);
+		  if(!fs::exists(importpath)) {
+		    importpath = fs::path(filepath).parent_path() / importpath;
+		    if(!fs::exists(importpath)) {
+		      std::cout << "Line " << linecount << ": Unable to find '" << importfn << "'" << std::endl;
+		      break;
+		    }
+		  }
+
+      /* Import the machine */
+		  TuringMachine subMachine = TuringMachine::create_from_file(importpath.string(), subMachineName + "__");
+		  if (startState == "")
+		    startState = subMachine.start;
+
+		  /* Merge the other machine's states into the current Turing Machine */
+		  for(const auto& [state_name, state] : subMachine.states) {
+		    std::string newname = state_name;
+		    if (state_name == startState)
+		      newname = subMachineName;
+
+		    if (state.finalState) {
+		      // the final state from the submachine will be merged with the nextState
+		      if (state.rules.size() != 0)
+		        std::cout << "Line " << linecount << ", importing '" << subMachineName << "': Error - final state '" << state_name << "' of sub machine must not have any rules" << std::endl;
+
+		      continue;
+		    }
+
+		    /* Rewrite rules, merging final states with nextState */
+		    std::vector<Rule> newrules;
+		    for (Rule rule : state.rules) {
+		      if (rule.target->finalState)
+		        tm.addRule(newname, rule.readSymbol, rule.writeSymbol, rule.direction, nextState);
+		      else if(rule.target->name == startState)
+		        tm.addRule(newname, rule.readSymbol, rule.writeSymbol, rule.direction, subMachineName);
+		      else {
+		        tm.addRule(newname, rule.readSymbol, rule.writeSymbol, rule.direction, rule.target->name);
+		      }
+		    }
+
+		    /* Insert modified state */
+		    //tm.states.insert({newname, {newname, newrules, false}});
+		  }
+		} else if(line[0] != '#' && line[0] != '\0') {
+			std::cout << "Line " << linecount << ": syntax error" << std::endl;
+		}
+	}
+
+  in.close();
+	return tm;
+}
+
+void
+TuringMachine::addState(std::string name) {
+	if(states.count(name) == 0)
+		states.insert({name, {name, {}}});
+}
 
 void TuringMachine::addRule(std::string origin, char readSymbol,
 														char writeSymbol, Direction direction,
 														std::string target) {
 	
-	// does the origin state exist?
-	if(this->states.count(origin) == 0) {
-		
-		// create the state
-		this->states.insert({origin, {origin, {}}});
-	}
-	
-	// does the target state exist?
-	if(this->states.count(target) == 0) {
-		
-		// create the state
-		this->states.insert({target, {target, {}}});
-	}
-	
+	// create the origin and target states, if they don't exist yet
+	addState(origin);
+	addState(target);
 	
 	// construct the specific rule
 	Rule rule = {
@@ -189,6 +345,57 @@ bool TuringMachine::step(Tape* tape) {
 	return false;
 }
 
+bool
+TuringMachine::graph_to_file (std::string filename) {
+	std::ofstream out(filename, std::ios::trunc);
+	out << "digraph G {" << std::endl;
+	out << "  ___start [label=start;shape=none;fontcolor=red];" << std::endl;
+	out << "  ___start -> " << start << ";" << std::endl;
+
+	/* iterate over states */
+	for(const auto& [state_name, state] : states) {
+		if (state.finalState)
+			out << "  " << state_name << " [shape=doublecircle];" << std::endl;
+		else
+			out << "  " << state_name << ";" << std::endl;
+	}
+
+	/* iterate over states again for rules */
+	for(const auto& [state_name, state] : states) {
+	  /* iterate over destination states to merge rules that lead the same way to one label */
+	  std::map<std::string, std::vector<Rule>> rules_by_target;
+	  for (Rule rule : state.rules) {
+	    if (rules_by_target.count(rule.target->name) == 0){
+	      std::vector<Rule> rules {rule};
+	      rules_by_target.insert({rule.target->name, rules});
+	    } else {
+	      std::vector<Rule> *rules = &rules_by_target[rule.target->name];
+	      rules->push_back(rule);
+	    }
+	  }
+
+		for (const auto& [target_state_name, rules] : rules_by_target) {
+			out << "  " << state_name << " -> " << target_state_name << " [label=\"";
+			for (Rule rule : rules) {
+			  out << rule.readSymbol << "/" << rule.writeSymbol << "/";
+			  switch(rule.direction) {
+			    case Direction::LEFT:
+  				out << "L"; break;
+  				case Direction::RIGHT:
+  				out << "R"; break;
+  				case Direction::STAND:
+  				out << "S"; break;
+  			}
+	  		out << " \\n";
+	  	}
+	  	out << "\"];" << std::endl;
+		}
+	}
+	out << "}";
+
+	return true;
+}
+
 std::ostream& TuringMachine::outputMachine(std::ostream& stream) {
 	
 	// state | read | write | direction | nextState
@@ -313,7 +520,7 @@ std::ostream& operator<<(std::ostream& stream,
 	else if(direction == Direction::RIGHT)
 		stream << "R";
 	else
-		stream << "-";
+		stream << "S";
 	
 	return stream;
 }
