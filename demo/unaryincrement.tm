@@ -11,4 +11,4 @@ T: {_,$},1,L -> U
 # Move to the beginning of the number
 U: 1,L -> U
 U: {_,$},R -> V
-V final;
+final V;

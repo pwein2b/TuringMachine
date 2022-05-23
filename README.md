@@ -77,7 +77,7 @@ If the character read from the tape should not be modified (or equivalently, wri
 
 If S should become a final state, it should appear in a specific line
 ```
-S final;
+final S;
 ```
 
 If there are several rules with same direction of movement and target state, they can be abbreviated.

@@ -63,8 +63,8 @@ TuringMachine::create_from_file (std::string filename, std::string state_prefix)
 	TuringMachine tm;
 
 	std::regex ruleRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?(.) -> ([a-zA-Z0-9_]+)( #.*)?");
-	std::regex finalRegEx("([a-zA-Z0-9_]+) final;( #.*)?");
 	std::regex jumpRegEx("([a-zA-Z0-9_,]+): (\\{[^}]+\\}|[^{]),(.,)?jump (R|L) until (.) -> ([a-zA-Z0-9_]+)( #.*)?");
+	std::regex finalRegEx("final ([a-zA-Z0-9_]+);( #.*)?");
 	std::regex importRegEx("([a-zA-Z0-9_]+): import \"([^\"]+)\"( at ([a-zA-Z0-9_]+))? -> ([a-zA-Z0-9_]+)");
   std::regex alphabetRegEx("alphabet (\\{.(,.)*\\});");
 	int linecount = 0;

@@ -34,4 +34,4 @@ MoveLeft1: {0,1},S -> CheckFinished
 Done: {0,1_},R -> Done
 Done: _,R -> Done
 Done: $,R -> Done1
-Done1 final;
+final Done1;
