@@ -14,6 +14,7 @@ struct State {
 	std::string name;
 	std::vector<Rule> rules;
 	bool finalState = false;
+  bool auxiliaryState = false;
 };
 
 struct Rule {

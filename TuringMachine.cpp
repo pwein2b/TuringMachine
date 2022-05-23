@@ -234,7 +234,7 @@ void TuringMachine::addRule(std::string origin, char readSymbol,
 void TuringMachine::addJump(std::string origin, char readSymbol, char writeSymbol, Direction direction, char stop, std::string target) {
 	
 	// create a unique name. The tm is deterministic, so origin and readsymbol should be enough
-	std::string loopName = "Loop_" + origin + '.' + readSymbol;
+	std::string loopName = "Loop_" + origin + '_' + readSymbol;
 	
 	Direction reverse = Direction::STAND;
 	if (direction == Direction::LEFT) reverse = Direction::RIGHT;
@@ -250,6 +250,9 @@ void TuringMachine::addJump(std::string origin, char readSymbol, char writeSymbo
 			this->addRule(loopName, stop, stop, reverse, target);
 		}
 	}
+
+  // mark the state as auxiliary to prettify graph visualization
+  states[loopName].auxiliaryState = true;
 }
 
 void TuringMachine::setFinalState(std::string name, bool finalState) {
@@ -395,7 +398,9 @@ TuringMachine::graph_to_file (std::string filename) {
 	for(const auto& [state_name, state] : states) {
 		if (state.finalState)
 			out << "  " << state_name << " [shape=doublecircle];" << std::endl;
-		else
+		else if (state.auxiliaryState)
+      out << "  " << state_name << " [color=gray];" << std::endl;
+    else
 			out << "  " << state_name << ";" << std::endl;
 	}
 
